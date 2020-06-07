@@ -21,7 +21,8 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom"
-        android:orientation="horizontal">
+        android:orientation="horizontal"
+        android:visibility="gone">
 
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/card"
@@ -36,14 +37,12 @@
                 android:orientation="vertical"
                 android:padding="16dp">
 
-                <!-- Title, secondary and supporting text -->
                 <TextView
                     android:id="@+id/titleTextView"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Title"
-                    android:textAppearance="?attr/textAppearanceHeadline6"
-                    />
+                    android:textAppearance="?attr/textAppearanceHeadline6" />
 
                 <com.google.android.material.textfield.TextInputLayout
                     android:id="@+id/descriptionTextInputLayout"
@@ -64,9 +63,9 @@
 
                 </com.google.android.material.textfield.TextInputLayout>
 
+            <include layout="@layout/dropdown_menu" />
+
             </LinearLayout>
-
-
 
         </com.google.android.material.card.MaterialCardView>
 

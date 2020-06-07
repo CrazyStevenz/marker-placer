@@ -15,6 +15,8 @@ import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Bundle;
 import android.view.View;
+import android.widget.ArrayAdapter;
+import android.widget.AutoCompleteTextView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -38,8 +40,9 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
-public class MapsActivity extends AppCompatActivity implements OnMapReadyCallback {
+public class MapsActivity extends AppCompatActivity implements OnMapReadyCallback, GoogleMap.OnMarkerClickListener {
 
+    String[] COLORS = new String[] {"Red", "Green", "Blue", "Yellow", "Pink"};
     private GoogleMap mMap;
     private FirebaseFirestore db = FirebaseFirestore.getInstance();
     private List<Marker> mMarkers = new ArrayList<>();
@@ -54,7 +57,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
 
-        mOverlay = findViewById(R.id.overlay);
+        setupOverlay();
     }
 
     /**
@@ -69,6 +72,8 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     @Override
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
+
+        mMap.setOnMarkerClickListener(this);
 
         // Source: https://sites.google.com/site/androidhowto/how-to-1/get-notified-when-location-changes
         // The minimum time (in miliseconds) the system will wait until checking if the location changed
@@ -99,6 +104,39 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
             return;
         }
         locationManager.requestLocationUpdates(bestProvider, minTime, minDistance, myLocListener);
+    }
+
+    @Override
+    public boolean onMarkerClick(Marker marker) {
+        showOverlay(marker);
+
+        return false;
+    }
+
+    private void setupOverlay() {
+        mOverlay = findViewById(R.id.overlay);
+
+        // Source: https://material.io/develop/android/components/menu/
+        // Color dropdown
+        ArrayAdapter<String> adapter =
+                new ArrayAdapter<>(
+                        getApplicationContext(),
+                        R.layout.dropdown_menu_popup_item,
+                        COLORS);
+        AutoCompleteTextView editTextFilledExposedDropdown = findViewById(R.id.filled_exposed_dropdown);
+        editTextFilledExposedDropdown.setAdapter(adapter);
+        // Disables editing of dropdown values
+        editTextFilledExposedDropdown.setInputType(0);
+    }
+
+    private void showOverlay(Marker marker) {
+        TextView title = findViewById(R.id.titleTextView);
+        TextInputEditText description = findViewById(R.id.descriptionTextInputEditText);
+
+        title.setText(marker.getTitle());
+        description.setText(marker.getSnippet());
+
+        mOverlay.setVisibility(View.VISIBLE);
     }
 
     private class MyLocationListener implements LocationListener {
@@ -192,14 +230,6 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                             ).show();
                         }
                     });
-        }
-
-        private void showOverlay(Marker marker) {
-            TextView title = findViewById(R.id.titleTextView);
-            TextInputEditText description = findViewById(R.id.descriptionTextInputEditText);
-
-            title.setText(marker.getTitle());
-            description.setText(marker.getSnippet());
         }
     }
 }

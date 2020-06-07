@@ -97,15 +97,21 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     Geocoder geo = new Geocoder(getApplicationContext(), Locale.getDefault());
                     List<Address> addresses = geo.getFromLocation(location.getLatitude(), location.getLongitude(), 1);
 
-                    // Keep the marker in a value so we can manipulate it later
-                    Marker newMarker = mMap.addMarker(new MarkerOptions()
-                            // Set position of the marker to the user's current location
-                            .position(newMarkerPosition)
+                    // Set position of the marker to the user's current location
+                    MarkerOptions markerOptions = new MarkerOptions().position(newMarkerPosition);
 
-                            // Source: https://stackoverflow.com/questions/9270565/android-get-current-location-name
-                            // Set the title of the marker to the full address of the location
-                            .title(addresses.get(0).getAddressLine(0))
-                    );
+                    // Keep the marker in a value so we can manipulate it later
+                    Marker newMarker;
+                    if (addresses.isEmpty()) {
+                        newMarker = mMap.addMarker(markerOptions.title("No address name found"));
+                    }
+                    else {
+                        newMarker = mMap.addMarker(markerOptions
+                                // Source: https://stackoverflow.com/questions/9270565/android-get-current-location-name
+                                // Set the title of the marker to the full address of the location
+                                .title(addresses.get(0).getAddressLine(0))
+                        );
+                    }
 
                     // Show its title after it's been created
                     newMarker.showInfoWindow();
@@ -114,6 +120,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     mMarkers.add(newMarker);
                     // Only store the last 5 markers
                     while (mMarkers.size() > 5) {
+                        // Source: https://stackoverflow.com/questions/13692398/remove-a-marker-from-a-googlemap
                         // Delete the marker from the map
                         mMarkers.get(0).remove();
                         // Remove it from the list

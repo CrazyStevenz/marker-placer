@@ -1,7 +1,8 @@
 package com.crazystevenz.markerplacer;
 
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
-import androidx.fragment.app.FragmentActivity;
 
 import android.Manifest;
 import android.content.Context;
@@ -13,6 +14,9 @@ import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Bundle;
+import android.view.View;
+import android.widget.TextView;
+import android.widget.Toast;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
@@ -21,16 +25,25 @@ import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.android.material.textfield.TextInputEditText;
+import com.google.firebase.firestore.DocumentReference;
+import com.google.firebase.firestore.FirebaseFirestore;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
-public class MapsActivity extends FragmentActivity implements OnMapReadyCallback {
+public class MapsActivity extends AppCompatActivity implements OnMapReadyCallback {
 
     private GoogleMap mMap;
+    private FirebaseFirestore db = FirebaseFirestore.getInstance();
     private List<Marker> mMarkers = new ArrayList<>();
+    private View mOverlay;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -40,6 +53,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
+
+        mOverlay = findViewById(R.id.overlay);
     }
 
     /**
@@ -104,8 +119,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     Marker newMarker;
                     if (addresses.isEmpty()) {
                         newMarker = mMap.addMarker(markerOptions.title("No address name found"));
-                    }
-                    else {
+                    } else {
                         newMarker = mMap.addMarker(markerOptions
                                 // Source: https://stackoverflow.com/questions/9270565/android-get-current-location-name
                                 // Set the title of the marker to the full address of the location
@@ -130,6 +144,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     // Source: https://stackoverflow.com/questions/13932441/android-google-maps-v2-set-zoom-level-for-mylocation
                     // Move the camera to the user's location and zoom in
                     mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(newMarkerPosition, 15.0f));
+
+                    // Save marker info to Firebase
+                    saveToDb(newMarker);
+
+
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
@@ -137,15 +156,50 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
 
         @Override
-        public void onProviderDisabled(String arg0) {
-        }
+        public void onProviderDisabled(String arg0) {}
 
         @Override
-        public void onProviderEnabled(String arg0) {
-        }
+        public void onProviderEnabled(String arg0) {}
 
         @Override
-        public void onStatusChanged(String arg0, int arg1, Bundle arg2) {
+        public void onStatusChanged(String arg0, int arg1, Bundle arg2) {}
+
+        // Source: https://firebase.google.com/docs/firestore/quickstart#java
+        private void saveToDb(Marker m) {
+            Map<String, Object> marker = new HashMap<>();
+            marker.put("position", m.getPosition());
+            marker.put("title", m.getTitle());
+            marker.put("color", "red");
+
+            // Add a new document with a generated ID
+            db.collection("markers")
+                    .add(marker)
+                    .addOnSuccessListener(new OnSuccessListener<DocumentReference>() {
+                        @Override
+                        public void onSuccess(DocumentReference documentReference) {
+                            Toast.makeText(getApplicationContext(),
+                                    "DocumentSnapshot added with ID: " + documentReference.getId(),
+                                    Toast.LENGTH_SHORT
+                            ).show();
+                        }
+                    })
+                    .addOnFailureListener(new OnFailureListener() {
+                        @Override
+                        public void onFailure(@NonNull Exception e) {
+                            Toast.makeText(getApplicationContext(),
+                                    "Error adding document: " + e.getMessage(),
+                                    Toast.LENGTH_SHORT
+                            ).show();
+                        }
+                    });
+        }
+
+        private void showOverlay(Marker marker) {
+            TextView title = findViewById(R.id.titleTextView);
+            TextInputEditText description = findViewById(R.id.descriptionTextInputEditText);
+
+            title.setText(marker.getTitle());
+            description.setText(marker.getSnippet());
         }
     }
 }

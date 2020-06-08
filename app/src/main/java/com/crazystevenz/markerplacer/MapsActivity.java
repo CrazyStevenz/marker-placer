@@ -14,6 +14,7 @@ import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Bundle;
+import android.text.Editable;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
@@ -52,7 +53,6 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     private GoogleMap mMap;
     private FirebaseFirestore db = FirebaseFirestore.getInstance();
     private List<MyMarker> mMyMarkers = new ArrayList<>();
-    private List<DocumentReference> mMarkerRefs = new ArrayList<>();
     private Marker mSelectedMarker;
     private View mOverlayView;
     private TextInputEditText mDescriptionTextView;
@@ -153,21 +153,22 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     public void saveToDb() {
-        DocumentReference markerRef = null;
         for (int i = 0; i < mMyMarkers.size(); i++) {
-            Marker marker = mMyMarkers.get(i).getMarker();
-            if (marker.getPosition().latitude == mSelectedMarker.getPosition().latitude
-             && marker.getPosition().longitude == mSelectedMarker.getPosition().longitude) {
-                markerRef = mMarkerRefs.get(i);
+
+            MyMarker myMarker = mMyMarkers.get(i);
+            if (myMarker.equals(mSelectedMarker)) {
+
+                Editable description = mDescriptionTextView.getText();
+                myMarker.getMarker().setSnippet(description != null ? description.toString() : "");
+                myMarker.setColor(mColorAutoCompleteTextView.getText().toString());
+
+                myMarker.getRef().update(
+                        "description", myMarker.getMarker().getSnippet(),
+                        "color", myMarker.getColor()
+                );
                 break;
             }
         }
-
-        if (markerRef == null) return;
-
-        markerRef.update(
-                "description", mDescriptionTextView.getText().toString()
-        );
     }
 
     private void clearDb(final Runnable callback) {
@@ -251,8 +252,10 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                         );
                     }
 
+                    MyMarker myMarker = new MyMarker(newMarker);
+
                     // Add the new marker to the marker list so we can access it later
-                    mMyMarkers.add(new MyMarker(newMarker));
+                    mMyMarkers.add(myMarker);
                     // Only store the last 5 markers
                     while (mMyMarkers.size() > 5) {
                         // Source: https://stackoverflow.com/questions/13692398/remove-a-marker-from-a-googlemap
@@ -267,7 +270,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                     mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(newMarkerPosition, 15.0f));
 
                     // Save marker info to Firebase
-                    addToDb(newMarker);
+                    addToDb(myMarker);
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
@@ -283,10 +286,10 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         @Override
         public void onStatusChanged(String arg0, int arg1, Bundle arg2) {}
 
-        private void addToDb(Marker m) {
+        private void addToDb(MyMarker myMarker) {
             // Create a new marker database entry
             Map<String, Object> dbEntry = new HashMap<>();
-            dbEntry.put("position", m.getPosition());
+            dbEntry.put("position", myMarker.getMarker().getPosition());
             dbEntry.put("description", "");
             dbEntry.put("color", COLORS[0]);
 
@@ -316,13 +319,13 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                     });
 
             // Add the new reference to the reference list so we can access it later
-            mMarkerRefs.add(newMarkerRef);
+            myMarker.setRef(newMarkerRef);
             // Only store the last 5 references
-            while (mMarkerRefs.size() > 5) {
+            while (mMyMarkers.size() > 5) {
                 // Delete the reference from the database
-                mMarkerRefs.get(0).delete();
+                mMyMarkers.get(0).getRef().delete();
                 // Remove it from the list
-                mMarkerRefs.remove(0);
+                mMyMarkers.remove(0);
             }
         }
     }

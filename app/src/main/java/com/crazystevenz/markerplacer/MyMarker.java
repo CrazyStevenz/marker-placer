@@ -6,7 +6,7 @@ import com.google.firebase.firestore.DocumentReference;
 public class MyMarker {
     private Marker marker;
     private DocumentReference ref;
-    private int color;
+    private String color;
 
     public MyMarker(Marker marker) {
         this.marker = marker;
@@ -28,11 +28,16 @@ public class MyMarker {
         this.ref = ref;
     }
 
-    public int getColor() {
+    public String getColor() {
         return color;
     }
 
-    public void setColor(int color) {
+    public void setColor(String color) {
         this.color = color;
+    }
+
+    public boolean equals(Marker marker) {
+        return this.marker.getPosition().latitude == marker.getPosition().latitude
+            && this.marker.getPosition().longitude == marker.getPosition().longitude;
     }
 }

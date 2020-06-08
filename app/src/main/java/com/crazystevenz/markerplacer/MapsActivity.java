@@ -46,6 +46,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     private GoogleMap mMap;
     private FirebaseFirestore db = FirebaseFirestore.getInstance();
     private List<Marker> mMarkers = new ArrayList<>();
+    private List<DocumentReference> mMarkerRefs = new ArrayList<>();
     private View mOverlay;
 
     @Override
@@ -184,7 +185,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                     mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(newMarkerPosition, 15.0f));
 
                     // Save marker info to Firebase
-                    saveToDb(newMarker);
+                    addToDb(newMarker);
 
 
                 } catch (IOException e) {
@@ -202,21 +203,24 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         @Override
         public void onStatusChanged(String arg0, int arg1, Bundle arg2) {}
 
-        // Source: https://firebase.google.com/docs/firestore/quickstart#java
-        private void saveToDb(Marker m) {
+        private void addToDb(Marker m) {
+            // Create a new marker database entry
             Map<String, Object> marker = new HashMap<>();
             marker.put("position", m.getPosition());
             marker.put("title", m.getTitle());
-            marker.put("color", "red");
+            marker.put("color", "Red");
 
-            // Add a new document with a generated ID
-            db.collection("markers")
-                    .add(marker)
-                    .addOnSuccessListener(new OnSuccessListener<DocumentReference>() {
+            // Source: https://firebase.google.com/docs/firestore/manage-data/add-data#java_14
+            // Create a new document reference with an auto-generated ID
+            DocumentReference newMarkerRef = db.collection("markers").document();
+
+            // Add the data to the database using the reference
+            newMarkerRef.set(marker)
+                    .addOnSuccessListener(new OnSuccessListener<Void>() {
                         @Override
-                        public void onSuccess(DocumentReference documentReference) {
+                        public void onSuccess(Void aVoid) {
                             Toast.makeText(getApplicationContext(),
-                                    "DocumentSnapshot added with ID: " + documentReference.getId(),
+                                    "DocumentSnapshot added successfully ",
                                     Toast.LENGTH_SHORT
                             ).show();
                         }
@@ -230,6 +234,18 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                             ).show();
                         }
                     });
+
+            // Add the new reference to the reference list so we can access it later
+            mMarkerRefs.add(newMarkerRef);
+            // Only store the last 5 references
+            while (mMarkerRefs.size() > 5) {
+                // Delete the reference from the database
+                mMarkerRefs.get(0).delete();
+                // Remove it from the list
+                mMarkerRefs.remove(0);
+            }
         }
+
+
     }
 }

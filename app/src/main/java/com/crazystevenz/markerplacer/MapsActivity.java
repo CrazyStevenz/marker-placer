@@ -111,11 +111,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     @Override
     public boolean onMarkerClick(Marker marker) {
-        // Move map up so the overlay doesn't hide the selected marker
-        mMap.setPadding(0, 0, 0, mOverlay.getHeight());
-
         showOverlay(marker);
-
         return false;
     }
 
@@ -127,7 +123,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         closeImageButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                mOverlay.setVisibility(View.GONE);
+                hideOverlay();
             }
         });
 
@@ -152,6 +148,14 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         description.setText(marker.getSnippet());
 
         mOverlay.setVisibility(View.VISIBLE);
+
+        // Move map up so the overlay doesn't hide the selected marker
+        mMap.setPadding(0, 0, 0, mOverlay.getHeight());
+    }
+
+    private void hideOverlay() {
+        mOverlay.setVisibility(View.GONE);
+        mMap.setPadding(0, 0, 0, mOverlay.getHeight());
     }
 
     private class MyLocationListener implements LocationListener {
@@ -179,6 +183,10 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                                 .title(addresses.get(0).getAddressLine(0))
                         );
                     }
+
+                    // Display the new information
+                    newMarker.showInfoWindow();
+                    showOverlay(newMarker);
 
                     // Add the new marker to the marker list so we can access it later
                     mMarkers.add(newMarker);

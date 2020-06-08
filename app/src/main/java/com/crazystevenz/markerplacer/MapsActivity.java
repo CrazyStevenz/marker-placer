@@ -27,6 +27,7 @@ import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
@@ -49,7 +50,7 @@ import java.util.Map;
 
 public class MapsActivity extends AppCompatActivity implements OnMapReadyCallback, GoogleMap.OnMarkerClickListener {
 
-    String[] COLORS = new String[] {"Red", "Green", "Blue", "Yellow", "Pink"};
+    String[] COLORS = new String[] {"Red", "Green", "Blue", "Yellow", "Magenta"};
     private GoogleMap mMap;
     private FirebaseFirestore db = FirebaseFirestore.getInstance();
     private List<MyMarker> mMyMarkers = new ArrayList<>();
@@ -162,6 +163,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                 Editable description = mDescriptionTextView.getText();
                 myMarker.getMarker().setSnippet(description != null ? description.toString() : "");
                 myMarker.setColor(mColorAutoCompleteTextView.getText().toString());
+                setColor(myMarker.getMarker(), myMarker.getColor());
 
                 myMarker.getRef().update(
                         "description", myMarker.getMarker().getSnippet(),
@@ -193,6 +195,21 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                         });
                     }
                 });
+    }
+
+    private void setColor(Marker marker, String color) {
+        switch (color) {
+            case "Red": marker.setIcon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED));
+                break;
+            case "Green": marker.setIcon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN));
+                break;
+            case "Blue": marker.setIcon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_BLUE));
+                break;
+            case "Yellow": marker.setIcon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_YELLOW));
+                break;
+            case "Magenta": marker.setIcon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_MAGENTA));
+                break;
+        }
     }
 
     private void requestLocationUpdates() {

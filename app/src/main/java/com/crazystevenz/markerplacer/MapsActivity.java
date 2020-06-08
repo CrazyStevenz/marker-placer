@@ -51,7 +51,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     String[] COLORS = new String[] {"Red", "Green", "Blue", "Yellow", "Pink"};
     private GoogleMap mMap;
     private FirebaseFirestore db = FirebaseFirestore.getInstance();
-    private List<Marker> mMarkers = new ArrayList<>();
+    private List<MyMarker> mMyMarkers = new ArrayList<>();
     private List<DocumentReference> mMarkerRefs = new ArrayList<>();
     private Marker mSelectedMarker;
     private View mOverlayView;
@@ -122,9 +122,9 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                         R.layout.dropdown_menu_popup_item,
                         COLORS);
         mColorAutoCompleteTextView.setAdapter(adapter);
+        mColorAutoCompleteTextView.setText(COLORS[0], false);
         // Disables editing of dropdown values
         mColorAutoCompleteTextView.setInputType(0);
-        mColorAutoCompleteTextView.setText(COLORS[0], false);
 
         Button saveButton = mOverlayView.findViewById(R.id.save_button);
         saveButton.setOnClickListener(new View.OnClickListener() {
@@ -140,7 +140,6 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         title.setText(marker.getTitle());
         mDescriptionTextView.setText(marker.getSnippet());
-        mColorAutoCompleteTextView.setText();
 
         mOverlayView.setVisibility(View.VISIBLE);
 
@@ -155,8 +154,8 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     public void saveToDb() {
         DocumentReference markerRef = null;
-        for (int i = 0; i < mMarkers.size(); i++) {
-            Marker marker = mMarkers.get(i);
+        for (int i = 0; i < mMyMarkers.size(); i++) {
+            Marker marker = mMyMarkers.get(i).getMarker();
             if (marker.getPosition().latitude == mSelectedMarker.getPosition().latitude
              && marker.getPosition().longitude == mSelectedMarker.getPosition().longitude) {
                 markerRef = mMarkerRefs.get(i);
@@ -253,14 +252,14 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                     }
 
                     // Add the new marker to the marker list so we can access it later
-                    mMarkers.add(newMarker);
+                    mMyMarkers.add(new MyMarker(newMarker));
                     // Only store the last 5 markers
-                    while (mMarkers.size() > 5) {
+                    while (mMyMarkers.size() > 5) {
                         // Source: https://stackoverflow.com/questions/13692398/remove-a-marker-from-a-googlemap
                         // Delete the marker from the map
-                        mMarkers.get(0).remove();
+                        mMyMarkers.get(0).getMarker().remove();
                         // Remove it from the list
-                        mMarkers.remove(0);
+                        mMyMarkers.remove(0);
                     }
 
                     // Source: https://stackoverflow.com/questions/13932441/android-google-maps-v2-set-zoom-level-for-mylocation
@@ -286,17 +285,17 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         private void addToDb(Marker m) {
             // Create a new marker database entry
-            Map<String, Object> marker = new HashMap<>();
-            marker.put("position", m.getPosition());
-            marker.put("description", "");
-            marker.put("color", "Red");
+            Map<String, Object> dbEntry = new HashMap<>();
+            dbEntry.put("position", m.getPosition());
+            dbEntry.put("description", "");
+            dbEntry.put("color", COLORS[0]);
 
             // Source: https://firebase.google.com/docs/firestore/manage-data/add-data#java_14
             // Create a new document reference with an auto-generated ID
             DocumentReference newMarkerRef = db.collection("markers").document();
 
             // Add the data to the database using the reference
-            newMarkerRef.set(marker)
+            newMarkerRef.set(dbEntry)
                     .addOnSuccessListener(new OnSuccessListener<Void>() {
                         @Override
                         public void onSuccess(Void aVoid) {

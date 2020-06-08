@@ -37,6 +37,14 @@
                 android:orientation="vertical"
                 android:padding="16dp">
 
+                <ImageButton
+                    android:id="@+id/close_image_button"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:src="@drawable/ic_clear"
+                    android:layout_gravity="end"
+                    android:background="#00000000"/>
+
                 <TextView
                     android:id="@+id/titleTextView"
                     android:layout_width="wrap_content"

@@ -17,6 +17,7 @@ import android.os.Bundle;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
+import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -24,6 +25,7 @@ import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
@@ -109,6 +111,9 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     @Override
     public boolean onMarkerClick(Marker marker) {
+        // Move map up so the overlay doesn't hide the selected marker
+        mMap.setPadding(0, 0, 0, mOverlay.getHeight());
+
         showOverlay(marker);
 
         return false;
@@ -116,6 +121,15 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     private void setupOverlay() {
         mOverlay = findViewById(R.id.overlay);
+
+        // Set the X in the overlay to hide it when clicked
+        ImageButton closeImageButton = mOverlay.findViewById(R.id.close_image_button);
+        closeImageButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                mOverlay.setVisibility(View.GONE);
+            }
+        });
 
         // Source: https://material.io/develop/android/components/menu/
         // Color dropdown
@@ -166,9 +180,6 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                         );
                     }
 
-                    // Show its title after it's been created
-                    newMarker.showInfoWindow();
-
                     // Add the new marker to the marker list so we can access it later
                     mMarkers.add(newMarker);
                     // Only store the last 5 markers
@@ -186,8 +197,6 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 
                     // Save marker info to Firebase
                     addToDb(newMarker);
-
-
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
@@ -245,7 +254,5 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                 mMarkerRefs.remove(0);
             }
         }
-
-
     }
 }

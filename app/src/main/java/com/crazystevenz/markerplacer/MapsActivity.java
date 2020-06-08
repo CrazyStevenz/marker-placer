@@ -13,10 +13,12 @@ import android.location.Geocoder;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
+import android.media.Image;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
+import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -31,16 +33,22 @@ import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.android.gms.tasks.Task;
+import com.google.android.gms.tasks.Tasks;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.firebase.firestore.DocumentReference;
+import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.QuerySnapshot;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
 
 public class MapsActivity extends AppCompatActivity implements OnMapReadyCallback, GoogleMap.OnMarkerClickListener {
 
@@ -49,18 +57,28 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     private FirebaseFirestore db = FirebaseFirestore.getInstance();
     private List<Marker> mMarkers = new ArrayList<>();
     private List<DocumentReference> mMarkerRefs = new ArrayList<>();
+    private Marker mSelectedMarker;
     private View mOverlay;
+    private TextInputEditText mDescriptionTextView;
+    private TextInputEditText mColorTextInputEditText;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_maps);
-        // Obtain the SupportMapFragment and get notified when the map is ready to be used.
-        SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
-                .findFragmentById(R.id.map);
-        mapFragment.getMapAsync(this);
 
-        setupOverlay();
+        setContentView(R.layout.activity_maps);
+
+        clearDb(new Runnable() {
+            @Override
+            public void run() {
+                // Obtain the SupportMapFragment and get notified when the map is ready to be used.
+                SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
+                        .findFragmentById(R.id.map);
+                mapFragment.getMapAsync(MapsActivity.this);
+
+                setupOverlay();
+            }
+        });
     }
 
     /**
@@ -112,11 +130,13 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     @Override
     public boolean onMarkerClick(Marker marker) {
         showOverlay(marker);
+        mSelectedMarker = marker;
         return false;
     }
 
     private void setupOverlay() {
         mOverlay = findViewById(R.id.overlay);
+        mDescriptionTextView = findViewById(R.id.descriptionTextInputEditText);
 
         // Set the X in the overlay to hide it when clicked
         ImageButton closeImageButton = mOverlay.findViewById(R.id.close_image_button);
@@ -138,14 +158,21 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         editTextFilledExposedDropdown.setAdapter(adapter);
         // Disables editing of dropdown values
         editTextFilledExposedDropdown.setInputType(0);
+
+        Button saveButton = mOverlay.findViewById(R.id.save_button);
+        saveButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                saveToDb();
+            }
+        });
     }
 
     private void showOverlay(Marker marker) {
         TextView title = findViewById(R.id.titleTextView);
-        TextInputEditText description = findViewById(R.id.descriptionTextInputEditText);
 
         title.setText(marker.getTitle());
-        description.setText(marker.getSnippet());
+        mDescriptionTextView.setText(marker.getSnippet());
 
         mOverlay.setVisibility(View.VISIBLE);
 
@@ -155,7 +182,48 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     private void hideOverlay() {
         mOverlay.setVisibility(View.GONE);
-        mMap.setPadding(0, 0, 0, mOverlay.getHeight());
+        mMap.setPadding(0, 0, 0, 0);
+    }
+
+    public void saveToDb() {
+        DocumentReference markerRef = null;
+        for (int i = 0; i < mMarkers.size(); i++) {
+            Marker marker = mMarkers.get(i);
+            if (marker.getPosition().latitude == mSelectedMarker.getPosition().latitude
+             && marker.getPosition().longitude == mSelectedMarker.getPosition().longitude) {
+                markerRef = mMarkerRefs.get(i);
+                break;
+            }
+        }
+
+        if (markerRef == null) return;
+
+        markerRef.update(
+                "description", mDescriptionTextView.getText().toString()
+        );
+    }
+
+    private void clearDb(final Runnable callback) {
+        db.collection("markers")
+                .get()
+                .addOnSuccessListener(new OnSuccessListener<QuerySnapshot>() {
+                    @Override
+                    public void onSuccess(final QuerySnapshot queryDocumentSnapshots) {
+                        List<Task<?>> tasks = new ArrayList<>(queryDocumentSnapshots.getDocuments().size());
+
+                        for (DocumentSnapshot ds : queryDocumentSnapshots.getDocuments()) {
+                            tasks.add(ds.getReference().delete());
+                        }
+
+                        Tasks.whenAllComplete(tasks)
+                                .addOnSuccessListener(new OnSuccessListener<List<Task<?>>>() {
+                                    @Override
+                                    public void onSuccess(List<Task<?>> tasks) {
+                                        callback.run();
+                                    }
+                        });
+                    }
+                });
     }
 
     private class MyLocationListener implements LocationListener {
@@ -183,10 +251,6 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                                 .title(addresses.get(0).getAddressLine(0))
                         );
                     }
-
-                    // Display the new information
-                    newMarker.showInfoWindow();
-                    showOverlay(newMarker);
 
                     // Add the new marker to the marker list so we can access it later
                     mMarkers.add(newMarker);
@@ -224,7 +288,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
             // Create a new marker database entry
             Map<String, Object> marker = new HashMap<>();
             marker.put("position", m.getPosition());
-            marker.put("title", m.getTitle());
+            marker.put("description", "");
             marker.put("color", "Red");
 
             // Source: https://firebase.google.com/docs/firestore/manage-data/add-data#java_14

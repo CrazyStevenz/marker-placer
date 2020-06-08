@@ -7,7 +7,6 @@
     android:id="@+id/root_view">
 
     <fragment xmlns:android="http://schemas.android.com/apk/res/android"
-        xmlns:map="http://schemas.android.com/apk/res-auto"
         xmlns:tools="http://schemas.android.com/tools"
         android:id="@+id/map"
         android:name="com.google.android.gms.maps.SupportMapFragment"
@@ -21,8 +20,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom"
-        android:orientation="horizontal"
-        android:visibility="gone">
+        android:orientation="horizontal">
 
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/card"
@@ -71,11 +69,20 @@
 
                 </com.google.android.material.textfield.TextInputLayout>
 
-            <include layout="@layout/dropdown_menu" />
+            <include layout="@layout/dropdown_menu"/>
+
+            <Button
+                android:id="@+id/save_button"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="end"
+                android:layout_marginTop="5dp"
+                android:text="Save"/>
 
             </LinearLayout>
 
         </com.google.android.material.card.MaterialCardView>
 
     </RelativeLayout>
+
 </FrameLayout>

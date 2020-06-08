@@ -114,6 +114,9 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
             }
         });
 
+        // Disables editing of dropdown values
+        mColorAutoCompleteTextView.setInputType(0);
+
         // Source: https://material.io/develop/android/components/menu/
         // Color dropdown
         ArrayAdapter<String> adapter =
@@ -123,8 +126,6 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                         COLORS);
         mColorAutoCompleteTextView.setAdapter(adapter);
         mColorAutoCompleteTextView.setText(COLORS[0], false);
-        // Disables editing of dropdown values
-        mColorAutoCompleteTextView.setInputType(0);
 
         Button saveButton = mOverlayView.findViewById(R.id.save_button);
         saveButton.setOnClickListener(new View.OnClickListener() {

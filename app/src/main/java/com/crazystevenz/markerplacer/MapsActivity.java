@@ -13,7 +13,6 @@ import android.location.Geocoder;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
-import android.media.Image;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.ArrayAdapter;
@@ -27,7 +26,6 @@ import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
-import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
@@ -43,12 +41,10 @@ import com.google.firebase.firestore.QuerySnapshot;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.concurrent.ExecutionException;
 
 public class MapsActivity extends AppCompatActivity implements OnMapReadyCallback, GoogleMap.OnMarkerClickListener {
 
@@ -58,9 +54,9 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     private List<Marker> mMarkers = new ArrayList<>();
     private List<DocumentReference> mMarkerRefs = new ArrayList<>();
     private Marker mSelectedMarker;
-    private View mOverlay;
+    private View mOverlayView;
     private TextInputEditText mDescriptionTextView;
-    private TextInputEditText mColorTextInputEditText;
+    private AutoCompleteTextView mColorAutoCompleteTextView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -93,38 +89,8 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     @Override
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
-
         mMap.setOnMarkerClickListener(this);
-
-        // Source: https://sites.google.com/site/androidhowto/how-to-1/get-notified-when-location-changes
-        // The minimum time (in miliseconds) the system will wait until checking if the location changed
-        int minTime = 1000;
-        // The minimum distance (in meters) traveled until you will be notified
-        float minDistance = 1;
-        // Create a new instance of the location listener
-        MyLocationListener myLocListener = new MyLocationListener();
-        // Get the location manager from the system
-        LocationManager locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
-        // Get the criteria you would like to use
-        Criteria criteria = new Criteria();
-        criteria.setPowerRequirement(Criteria.POWER_LOW);
-        criteria.setAccuracy(Criteria.ACCURACY_FINE);
-        criteria.setAltitudeRequired(false);
-        criteria.setBearingRequired(false);
-        criteria.setCostAllowed(true);
-        criteria.setSpeedRequired(false);
-        // Get the best provider from the criteria specified, and false to say it can turn the provider on if it isn't already
-        String bestProvider = locationManager.getBestProvider(criteria, false);
-        // Request location updates
-        if (ActivityCompat.checkSelfPermission(this,
-                Manifest.permission.ACCESS_FINE_LOCATION)
-                != PackageManager.PERMISSION_GRANTED
-                && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION)
-                != PackageManager.PERMISSION_GRANTED
-        ) {
-            return;
-        }
-        locationManager.requestLocationUpdates(bestProvider, minTime, minDistance, myLocListener);
+        requestLocationUpdates();
     }
 
     @Override
@@ -135,11 +101,12 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     private void setupOverlay() {
-        mOverlay = findViewById(R.id.overlay);
+        mOverlayView = findViewById(R.id.overlay);
         mDescriptionTextView = findViewById(R.id.descriptionTextInputEditText);
+        mColorAutoCompleteTextView = findViewById(R.id.filled_exposed_dropdown);
 
         // Set the X in the overlay to hide it when clicked
-        ImageButton closeImageButton = mOverlay.findViewById(R.id.close_image_button);
+        ImageButton closeImageButton = mOverlayView.findViewById(R.id.close_image_button);
         closeImageButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -154,12 +121,12 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                         getApplicationContext(),
                         R.layout.dropdown_menu_popup_item,
                         COLORS);
-        AutoCompleteTextView editTextFilledExposedDropdown = findViewById(R.id.filled_exposed_dropdown);
-        editTextFilledExposedDropdown.setAdapter(adapter);
+        mColorAutoCompleteTextView.setAdapter(adapter);
         // Disables editing of dropdown values
-        editTextFilledExposedDropdown.setInputType(0);
+        mColorAutoCompleteTextView.setInputType(0);
+        mColorAutoCompleteTextView.setText(COLORS[0], false);
 
-        Button saveButton = mOverlay.findViewById(R.id.save_button);
+        Button saveButton = mOverlayView.findViewById(R.id.save_button);
         saveButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -173,15 +140,16 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         title.setText(marker.getTitle());
         mDescriptionTextView.setText(marker.getSnippet());
+        mColorAutoCompleteTextView.setText();
 
-        mOverlay.setVisibility(View.VISIBLE);
+        mOverlayView.setVisibility(View.VISIBLE);
 
         // Move map up so the overlay doesn't hide the selected marker
-        mMap.setPadding(0, 0, 0, mOverlay.getHeight());
+        mMap.setPadding(0, 0, 0, mOverlayView.getHeight());
     }
 
     private void hideOverlay() {
-        mOverlay.setVisibility(View.GONE);
+        mOverlayView.setVisibility(View.GONE);
         mMap.setPadding(0, 0, 0, 0);
     }
 
@@ -224,6 +192,38 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                         });
                     }
                 });
+    }
+
+    private void requestLocationUpdates() {
+        // Source: https://sites.google.com/site/androidhowto/how-to-1/get-notified-when-location-changes
+        // The minimum time (in miliseconds) the system will wait until checking if the location changed
+        int minTime = 1000;
+        // The minimum distance (in meters) traveled until you will be notified
+        float minDistance = 1;
+        // Create a new instance of the location listener
+        MyLocationListener myLocListener = new MyLocationListener();
+        // Get the location manager from the system
+        LocationManager locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+        // Get the criteria you would like to use
+        Criteria criteria = new Criteria();
+        criteria.setPowerRequirement(Criteria.POWER_LOW);
+        criteria.setAccuracy(Criteria.ACCURACY_FINE);
+        criteria.setAltitudeRequired(false);
+        criteria.setBearingRequired(false);
+        criteria.setCostAllowed(true);
+        criteria.setSpeedRequired(false);
+        // Get the best provider from the criteria specified, and false to say it can turn the provider on if it isn't already
+        String bestProvider = locationManager.getBestProvider(criteria, false);
+        // Request location updates
+        if (ActivityCompat.checkSelfPermission(this,
+                Manifest.permission.ACCESS_FINE_LOCATION)
+                != PackageManager.PERMISSION_GRANTED
+                && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION)
+                != PackageManager.PERMISSION_GRANTED
+        ) {
+            return;
+        }
+        locationManager.requestLocationUpdates(bestProvider, minTime, minDistance, myLocListener);
     }
 
     private class MyLocationListener implements LocationListener {

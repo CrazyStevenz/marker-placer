@@ -6,8 +6,7 @@
     android:layout_height="fill_parent"
     android:id="@+id/root_view">
 
-    <fragment xmlns:android="http://schemas.android.com/apk/res/android"
-        xmlns:tools="http://schemas.android.com/tools"
+    <fragment xmlns:tools="http://schemas.android.com/tools"
         android:id="@+id/map"
         android:name="com.google.android.gms.maps.SupportMapFragment"
         android:layout_width="match_parent"
@@ -42,7 +41,8 @@
                     android:layout_height="wrap_content"
                     android:src="@drawable/ic_clear"
                     android:layout_gravity="end"
-                    android:background="#00000000"/>
+                    android:background="#00000000"
+                    android:contentDescription="Close overlay" />
 
                 <TextView
                     android:id="@+id/titleTextView"
@@ -78,7 +78,7 @@
                 android:layout_height="wrap_content"
                 android:layout_gravity="end"
                 android:layout_marginTop="5dp"
-                android:text="Save"/>
+                android:text="@string/save"/>
 
             </LinearLayout>
 

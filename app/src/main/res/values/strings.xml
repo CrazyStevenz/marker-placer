@@ -1,4 +1,5 @@
 <resources>
     <string name="app_name">Marker Placer</string>
+    <string name="save">Save</string>
     <string name="title_activity_maps">Marker Placer</string>
 </resources>

@@ -7,6 +7,10 @@ import androidx.core.app.ActivityCompat;
 import android.Manifest;
 import android.content.Context;
 import android.content.pm.PackageManager;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
 import android.location.Address;
 import android.location.Criteria;
 import android.location.Geocoder;
@@ -48,11 +52,14 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
-public class MapsActivity extends AppCompatActivity implements OnMapReadyCallback, GoogleMap.OnMarkerClickListener {
+public class MapsActivity extends AppCompatActivity implements OnMapReadyCallback, GoogleMap.OnMarkerClickListener, SensorEventListener {
 
     String[] COLORS = new String[] {"Red", "Green", "Blue", "Yellow", "Magenta"};
     private GoogleMap mMap;
     private FirebaseFirestore db = FirebaseFirestore.getInstance();
+    private SensorManager sensorManager;
+    private Sensor temp;
+    private float currentTempInCelsius;
     private List<MyMarker> mMyMarkers = new ArrayList<>();
     private Marker mSelectedMarker;
     private View mOverlayView;
@@ -64,6 +71,11 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         super.onCreate(savedInstanceState);
 
         setContentView(R.layout.activity_maps);
+
+        // Get an instance of the sensor service, and use that to get an instance of
+        // a particular sensor.
+        sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
+        temp = sensorManager.getDefaultSensor(Sensor.TYPE_AMBIENT_TEMPERATURE);
 
         clearDb(new Runnable() {
             @Override
@@ -137,20 +149,31 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         });
     }
 
-    private void showOverlay(Marker marker) {
-        TextView title = findViewById(R.id.titleTextView);
-
-        title.setText(marker.getTitle());
+    private void showOverlay(final Marker marker) {
+        // Update the overlay's info
+        TextView titleTextView = findViewById(R.id.titleTextView);
+        titleTextView.setText(marker.getTitle());
         mDescriptionTextView.setText(marker.getSnippet());
 
         mOverlayView.setVisibility(View.VISIBLE);
 
-        // Move map up so the overlay doesn't hide the selected marker
-        mMap.setPadding(0, 0, 0, mOverlayView.getHeight());
+        mOverlayView.addOnLayoutChangeListener(new View.OnLayoutChangeListener() {
+            @Override
+            public void onLayoutChange(View v, int left, int top, int right, int bottom, int oldLeft, int oldTop, int oldRight, int oldBottom) {
+
+                // Move the map up so the overlay doesn't hide the selected marker
+                mMap.setPadding(0, 0, 0, findViewById(R.id.overlay).getHeight());
+
+                // Source: https://stackoverflow.com/questions/13932441/android-google-maps-v2-set-zoom-level-for-mylocation
+                // Move the camera to the user's location and zoom in
+                mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(marker.getPosition(), 15.0f));
+            }
+        });
     }
 
     private void hideOverlay() {
         mOverlayView.setVisibility(View.GONE);
+        // Reset the map offset
         mMap.setPadding(0, 0, 0, 0);
     }
 
@@ -164,10 +187,12 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                 myMarker.getMarker().setSnippet(description != null ? description.toString() : "");
                 myMarker.setColor(mColorAutoCompleteTextView.getText().toString());
                 setColor(myMarker.getMarker(), myMarker.getColor());
+                myMarker.setSensorReading(currentTempInCelsius);
 
                 myMarker.getRef().update(
                         "description", myMarker.getMarker().getSnippet(),
-                        "color", myMarker.getColor()
+                        "color", myMarker.getColor(),
+                        "sensorReading", myMarker.getSensorReading()
                 );
                 break;
             }
@@ -244,6 +269,29 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         locationManager.requestLocationUpdates(bestProvider, minTime, minDistance, myLocListener);
     }
 
+    // Source: https://developer.android.com/guide/topics/sensors/sensors_environment#java
+    @Override
+    public void onSensorChanged(SensorEvent event) {
+        currentTempInCelsius = event.values[0];
+    }
+
+    @Override
+    public void onAccuracyChanged(Sensor sensor, int accuracy) {}
+
+    @Override
+    protected void onResume() {
+        // Register a listener for the sensor
+        super.onResume();
+        sensorManager.registerListener(this, temp, SensorManager.SENSOR_DELAY_NORMAL);
+    }
+
+    @Override
+    protected void onPause() {
+        // Unregister the sensor when the activity pauses
+        super.onPause();
+        sensorManager.unregisterListener(this);
+    }
+
     private class MyLocationListener implements LocationListener {
 
         @Override
@@ -270,6 +318,10 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                         );
                     }
 
+                    // Display the new marker's info
+                    newMarker.showInfoWindow();
+                    showOverlay(newMarker);
+
                     MyMarker myMarker = new MyMarker(newMarker);
 
                     // Add the new marker to the marker list so we can access it later
@@ -282,10 +334,6 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                         // Remove it from the list
                         mMyMarkers.remove(0);
                     }
-
-                    // Source: https://stackoverflow.com/questions/13932441/android-google-maps-v2-set-zoom-level-for-mylocation
-                    // Move the camera to the user's location and zoom in
-                    mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(newMarkerPosition, 15.0f));
 
                     // Save marker info to Firebase
                     addToDb(myMarker);

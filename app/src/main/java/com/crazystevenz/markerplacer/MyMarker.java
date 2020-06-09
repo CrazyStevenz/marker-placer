@@ -7,6 +7,7 @@ public class MyMarker {
     private Marker marker;
     private DocumentReference ref;
     private String color;
+    private float sensorReading;
 
     public MyMarker(Marker marker) {
         this.marker = marker;
@@ -34,6 +35,14 @@ public class MyMarker {
 
     public void setColor(String color) {
         this.color = color;
+    }
+
+    public float getSensorReading() {
+        return sensorReading;
+    }
+
+    public void setSensorReading(float sensorReading) {
+        this.sensorReading = sensorReading;
     }
 
     public boolean equals(Marker marker) {

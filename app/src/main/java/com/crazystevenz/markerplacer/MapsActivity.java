@@ -332,7 +332,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                     while (mMyMarkers.size() > 5) {
                         // Source: https://stackoverflow.com/questions/13692398/remove-a-marker-from-a-googlemap
                         // Delete the marker from the map
-                        mMyMarkers.get(0).getMarker().remove();
+                        mMyMarkers.get(0).getRef().delete();
                         // Remove it from the list
                         mMyMarkers.remove(0);
                     }

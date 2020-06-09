@@ -157,6 +157,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         mOverlayView.setVisibility(View.VISIBLE);
 
+        // Wait for the overlay to update
         mOverlayView.addOnLayoutChangeListener(new View.OnLayoutChangeListener() {
             @Override
             public void onLayoutChange(View v, int left, int top, int right, int bottom, int oldLeft, int oldTop, int oldRight, int oldBottom) {
@@ -179,16 +180,17 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     public void saveToDb() {
         for (int i = 0; i < mMyMarkers.size(); i++) {
-
             MyMarker myMarker = mMyMarkers.get(i);
             if (myMarker.equals(mSelectedMarker)) {
 
+                // Gather and update the marker info
                 Editable description = mDescriptionTextView.getText();
                 myMarker.getMarker().setSnippet(description != null ? description.toString() : "");
                 myMarker.setColor(mColorAutoCompleteTextView.getText().toString());
                 setColor(myMarker.getMarker(), myMarker.getColor());
                 myMarker.setSensorReading(currentTempInCelsius);
 
+                // Update the database
                 myMarker.getRef().update(
                         "description", myMarker.getMarker().getSnippet(),
                         "color", myMarker.getColor(),

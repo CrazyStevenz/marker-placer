@@ -77,6 +77,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
         temp = sensorManager.getDefaultSensor(Sensor.TYPE_AMBIENT_TEMPERATURE);
 
+        // Wait for the database clear to finish
         clearDb(new Runnable() {
             @Override
             public void run() {
@@ -187,7 +188,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                 Editable description = mDescriptionTextView.getText();
                 myMarker.getMarker().setSnippet(description != null ? description.toString() : "");
                 myMarker.setColor(mColorAutoCompleteTextView.getText().toString());
-                setColor(myMarker.getMarker(), myMarker.getColor());
+                setMarkerColor(myMarker.getMarker(), myMarker.getColor());
                 myMarker.setSensorReading(currentTempInCelsius);
 
                 // Update the database
@@ -202,6 +203,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     private void clearDb(final Runnable callback) {
+        // Deletes all database documents
         db.collection("markers")
                 .get()
                 .addOnSuccessListener(new OnSuccessListener<QuerySnapshot>() {
@@ -224,7 +226,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                 });
     }
 
-    private void setColor(Marker marker, String color) {
+    private void setMarkerColor(Marker marker, String color) {
         // Source: https://stackoverflow.com/a/49189517/10334320
         switch (color) {
             case "Red": marker.setIcon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED));

@@ -320,6 +320,8 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                         );
                     }
 
+                    mSelectedMarker = newMarker;
+
                     // Display the new marker's info
                     newMarker.showInfoWindow();
                     showOverlay(newMarker);
@@ -350,6 +352,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
             // Create a new marker database entry
             Map<String, Object> dbEntry = new HashMap<>();
             dbEntry.put("position", myMarker.getMarker().getPosition());
+            dbEntry.put("title", myMarker.getMarker().getTitle());
             dbEntry.put("description", "");
             dbEntry.put("color", COLORS[0]);
 

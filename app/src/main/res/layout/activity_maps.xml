@@ -70,15 +70,15 @@
 
                 </com.google.android.material.textfield.TextInputLayout>
 
-            <include layout="@layout/dropdown_menu"/>
+                <include layout="@layout/dropdown_menu"/>
 
-            <Button
-                android:id="@+id/save_button"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="end"
-                android:layout_marginTop="5dp"
-                android:text="@string/save"/>
+                <Button
+                    android:id="@+id/save_button"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="end"
+                    android:layout_marginTop="5dp"
+                    android:text="@string/save"/>
 
             </LinearLayout>
 

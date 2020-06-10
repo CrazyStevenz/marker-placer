@@ -328,14 +328,6 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 
                     // Add the new marker to the marker list so we can access it later
                     mMyMarkers.add(myMarker);
-                    // Only store the last 5 markers
-                    while (mMyMarkers.size() > 5) {
-                        // Source: https://stackoverflow.com/questions/13692398/remove-a-marker-from-a-googlemap
-                        // Delete the marker from the map
-                        mMyMarkers.get(0).getRef().delete();
-                        // Remove it from the list
-                        mMyMarkers.remove(0);
-                    }
 
                     // Save marker info to Firebase
                     addToDb(myMarker);
@@ -392,6 +384,9 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
             while (mMyMarkers.size() > 5) {
                 // Delete the reference from the database
                 mMyMarkers.get(0).getRef().delete();
+                // Source: https://stackoverflow.com/questions/13692398/remove-a-marker-from-a-googlemap
+                // Delete the marker from the map
+                mMyMarkers.get(0).getMarker().remove();
                 // Remove it from the list
                 mMyMarkers.remove(0);
             }
